@@ -1,16 +1,15 @@
-// app.js — Complete Tukaps Coffee Engine with PIN & Exact Excel Data
+// app.js — Kalkulasi HPP Real-time & Presisi Excel RESEP DAN HPP TUKAPS.xlsx
 
-const LOCAL_STORAGE_KEY = 'tukaps_hpp_ios_v3';
-const TARGET_PIN = "1234"; // PIN DEFAULT BISA DIGANTI DI SINI
+const LOCAL_STORAGE_KEY = 'tukaps_hpp_ios_v4';
+const TARGET_PIN = "1234";
 let currentPinInput = "";
 
-// PIN LOCK SYSTEM
+// PASSCODE LOGIC
 function pressPin(num) {
   if (currentPinInput.length < 4) {
     currentPinInput += num;
     updatePinDots();
   }
-  
   if (currentPinInput.length === 4) {
     setTimeout(verifyPin, 150);
   }
@@ -25,11 +24,8 @@ function updatePinDots() {
   for (let i = 0; i < 4; i++) {
     const dot = document.getElementById(`dot-${i}`);
     if (dot) {
-      if (i < currentPinInput.length) {
-        dot.classList.add('filled');
-      } else {
-        dot.classList.remove('filled');
-      }
+      if (i < currentPinInput.length) dot.classList.add('filled');
+      else dot.classList.remove('filled');
     }
   }
 }
@@ -52,7 +48,7 @@ function lockApp() {
   document.getElementById('pin-screen').classList.remove('hidden');
 }
 
-// 25 MENU SEED DATA
+// DATASET 100% SAMA DENGAN EXCEL
 const SEED_DATA = {
   "bahan": [
     { "id": "BHN01", "name": "Espresso Cair", "cat": "Kopi", "unit": "gr", "packQty": 1200, "buyPrice": 120000, "supplier": "Mahogany Roastery" },
@@ -127,10 +123,19 @@ function saveStore(data) {
   localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(store));
 }
 
+function resetDataExcel() {
+  if (confirm("Reset seluruh data ke nilai awal dari file Excel?")) {
+    saveStore(SEED_DATA);
+    renderDashboard();
+    renderMasterTables();
+  }
+}
+
 function fmtRp(val) {
   return 'Rp ' + Math.round(val || 0).toLocaleString('id-ID');
 }
 
+// REALTIME HPP CALCULATOR ENGINE
 function getBahanMap() {
   const map = {};
   store.bahan.forEach(b => { map[b.id] = b.packQty > 0 ? b.buyPrice / b.packQty : 0; });
@@ -425,9 +430,7 @@ function createMenu(newId) {
   const name = document.getElementById('new-menu-name').value;
   if (!name) return alert('Nama menu wajib diisi!');
   store.menu.push({ id: newId, name, cat: document.getElementById('new-menu-cat').value, sellingPrice: Number(document.getElementById('new-menu-price').value), overhead: Number(document.getElementById('new-menu-overhead').value), recipe: {}, pkg: { KMS01: 1, KMS03: 1 } });
-  saveStore();
-  closeModal();
-  renderDashboard();
+  saveStore(); closeModal(); renderDashboard();
 }
 
 function deleteMenu(id) {
