@@ -14,7 +14,7 @@
               50: '#fff7ed',
               100: '#ffedd5',
               200: '#fed7aa',
-              500: '#c2410c', // Terracotta Orange Tukaps
+              500: '#c2410c',
               600: '#9a3412',
               700: '#7c2d12'
             }
@@ -40,10 +40,10 @@
     .ios-segmented-btn { padding: 6px 16px; border-radius: 11px; font-size: 13px; font-weight: 600; transition: all 0.2s ease; }
     .ios-segmented-btn.active { background: #ffffff; color: #c2410c; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
     
-    /* Lock Screen Keypad Style */
-    .pin-dot { width: 14px; h-14px; border-radius: 50%; border: 2px solid #cbd5e1; transition: all 0.2s ease; }
+    /* Lock Screen Keypad */
+    .pin-dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid #cbd5e1; transition: all 0.2s ease; }
     .pin-dot.filled { background-color: #c2410c; border-color: #c2410c; box-shadow: 0 0 10px rgba(194, 65, 12, 0.4); }
-    .keypad-btn { width: 72px; height: 72px; border-radius: 50%; background: #f1f5f9; font-size: 24px; font-weight: 600; color: #0f172a; display: flex; align-items: center; justify-content: center; transition: all 0.15s ease; }
+    .keypad-btn { width: 72px; height: 72px; border-radius: 50%; background: #f1f5f9; font-size: 24px; font-weight: 600; color: #0f172a; display: flex; items-center; justify-content: center; transition: all 0.15s ease; }
     .keypad-btn:active { background: #cbd5e1; transform: scale(0.92); }
     @keyframes shake { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-10px); } 40%, 80% { transform: translateX(10px); } }
     .shake { animation: shake 0.4s ease-in-out; }
@@ -51,13 +51,13 @@
 </head>
 <body class="min-h-screen flex flex-col pb-12">
 
-  <!-- iOS LOCK SCREEN PIN OVERLAY -->
+  <!-- iOS LOCK SCREEN OVERLAY -->
   <div id="pin-screen" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4">
     <div id="pin-card" class="bg-white/90 backdrop-blur-2xl border border-white/40 shadow-2xl rounded-[36px] p-8 max-w-sm w-full flex flex-col items-center text-center space-y-6">
       
-      <!-- Logo Tukaps Lock Screen -->
+      <!-- Logo Container -->
       <div class="w-24 h-24 rounded-3xl bg-tukaps-50 p-2 border border-tukaps-200 flex items-center justify-center shadow-sm">
-        <img src="https://i.ibb.co/L8y6b9V/logo-tukaps.png" alt="Logo Tukaps Coffee" class="w-full h-full object-contain" id="lock-logo-img">
+        <svg class="w-16 h-16 text-tukaps-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/><line x1="6" x2="6" y1="2" y2="4"/><line x1="10" x2="10" y1="2" y2="4"/><line x1="14" x2="14" y1="2" y2="4"/></svg>
       </div>
 
       <div>
@@ -65,7 +65,7 @@
         <p class="text-xs text-slate-500 font-medium mt-1">Masukkan 4 digit PIN untuk membuka</p>
       </div>
 
-      <!-- PIN Dots Indicator -->
+      <!-- PIN Indicator -->
       <div class="flex items-center space-x-4 my-2">
         <div id="dot-0" class="pin-dot"></div>
         <div id="dot-1" class="pin-dot"></div>
@@ -73,7 +73,7 @@
         <div id="dot-3" class="pin-dot"></div>
       </div>
 
-      <!-- Keypad Numbers -->
+      <!-- Keypad -->
       <div class="grid grid-cols-3 gap-4 pt-2">
         <button onclick="pressPin('1')" class="keypad-btn">1</button>
         <button onclick="pressPin('2')" class="keypad-btn">2</button>
@@ -93,12 +93,11 @@
     </div>
   </div>
 
-  <!-- iOS HEADER -->
+  <!-- HEADER -->
   <header class="ios-glass sticky top-0 z-40 border-b border-slate-200/80 px-4 lg:px-8 py-3 flex items-center justify-between">
     <div class="flex items-center space-x-3">
-      <!-- Logo Tukaps Header -->
-      <div class="w-12 h-12 rounded-2xl bg-tukaps-50 border border-tukaps-200 p-1.5 flex items-center justify-center shadow-sm">
-        <img src="https://i.ibb.co/L8y6b9V/logo-tukaps.png" alt="Logo Tukaps" class="w-full h-full object-contain">
+      <div class="w-10 h-10 rounded-2xl bg-tukaps-50 border border-tukaps-200 flex items-center justify-center text-tukaps-500 shadow-sm">
+        <i data-lucide="coffee" class="w-5 h-5"></i>
       </div>
       <div>
         <div class="flex items-center space-x-2">
@@ -127,6 +126,9 @@
     </div>
 
     <div class="flex items-center space-x-2">
+      <button onclick="resetDataExcel()" class="p-2 rounded-xl bg-slate-100 text-slate-500 hover:bg-slate-200 transition text-xs font-bold" title="Reset Data ke Excel Asli">
+        <i data-lucide="rotate-ccw" class="w-4 h-4 inline"></i> Reset Excel
+      </button>
       <button onclick="lockApp()" class="p-2 rounded-xl bg-slate-100 text-slate-500 hover:bg-slate-200 transition" title="Kunci Aplikasi">
         <i data-lucide="lock" class="w-4 h-4"></i>
       </button>
@@ -149,7 +151,6 @@
   <!-- MAIN CONTAINER -->
   <main class="flex-1 p-4 lg:p-8 max-w-[1600px] w-full mx-auto space-y-6">
 
-    <!-- Stat Widgets -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
       <div class="ios-card p-4 rounded-3xl relative overflow-hidden">
         <div class="flex items-center justify-between">
