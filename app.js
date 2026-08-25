@@ -1,5 +1,8 @@
-// app.js — Complete HPP Calculator Engine for Tukaps Coffee
+// app.js — Complete CRUD Engine & Apple iOS Style UI for Tukaps Coffee
 
+const LOCAL_STORAGE_KEY = 'tukaps_hpp_ios_v1';
+
+// Seed initial data from Excel
 const SEED_DATA = {
   bahan: [
     { id: "BHN01", name: "Espresso Cair", cat: "Kopi", unit: "gr", packQty: 1200, buyPrice: 120000, supplier: "Mahogany Roastery" },
@@ -53,58 +56,69 @@ const SEED_DATA = {
   ]
 };
 
-let currentCategory = "All";
+let store = loadStore();
+let selectedCatFilter = "All";
 
-// Formatting Helper
+function loadStore() {
+  const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+  if (saved) {
+    try { return JSON.parse(saved); } catch (e) {}
+  }
+  saveStore(SEED_DATA);
+  return SEED_DATA;
+}
+
+function saveStore(data) {
+  store = data || store;
+  localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(store));
+}
+
 function fmtRp(val) {
   return 'Rp ' + Math.round(val || 0).toLocaleString('id-ID');
 }
 
-// Map Unit Prices
-function getBahanUnitPriceMap() {
+// Unit Price Maps
+function getBahanMap() {
   const map = {};
-  SEED_DATA.bahan.forEach(b => {
-    map[b.id] = b.packQty > 0 ? b.buyPrice / b.packQty : 0;
-  });
+  store.bahan.forEach(b => { map[b.id] = b.packQty > 0 ? b.buyPrice / b.packQty : 0; });
   return map;
 }
 
-function getKemasanUnitPriceMap() {
+function getKemasanMap() {
   const map = {};
-  SEED_DATA.kemasan.forEach(k => {
-    map[k.id] = k.packQty > 0 ? k.buyPrice / k.packQty : 0;
-  });
+  store.kemasan.forEach(k => { map[k.id] = k.packQty > 0 ? k.buyPrice / k.packQty : 0; });
   return map;
 }
 
-// Calculate All Menus
 function getCalculatedMenus() {
-  const bahanMap = getBahanUnitPriceMap();
-  const kemasanMap = getKemasanUnitPriceMap();
+  const bMap = getBahanMap();
+  const kMap = getKemasanMap();
 
-  return SEED_DATA.menu.map(m => {
+  return store.menu.map(m => {
     let bahanCost = 0;
     if (m.recipe) {
       Object.entries(m.recipe).forEach(([bId, qty]) => {
-        bahanCost += (bahanMap[bId] || 0) * qty;
+        bahanCost += (bMap[bId] || 0) * Number(qty);
       });
     }
 
     let kemasanCost = 0;
     if (m.pkg) {
       Object.entries(m.pkg).forEach(([kId, qty]) => {
-        kemasanCost += (kemasanMap[kId] || 0) * qty;
+        kemasanCost += (kMap[kId] || 0) * Number(qty);
       });
     }
 
-    const totalModal = bahanCost + kemasanCost + (m.overhead || 0);
-    const laba = m.sellingPrice - totalModal;
+    const overhead = Number(m.overhead || 0);
+    const totalModal = bahanCost + kemasanCost + overhead;
+    const laba = Number(m.sellingPrice || 0) - totalModal;
     const marginPct = m.sellingPrice > 0 ? (laba / m.sellingPrice) * 100 : 0;
 
     return {
       ...m,
       bahanCost: Math.round(bahanCost),
       kemasanCost: Math.round(kemasanCost),
+      overhead,
       totalModal: Math.round(totalModal),
       laba: Math.round(laba),
       marginPct: Math.round(marginPct * 10) / 10
@@ -112,100 +126,106 @@ function getCalculatedMenus() {
   });
 }
 
-// Switch Tabs
-function switchTab(tabId) {
-  document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-  document.querySelectorAll('.tab-btn').forEach(el => {
-    el.classList.remove('bg-amber-500', 'text-slate-950', 'font-bold', 'shadow');
-    el.classList.add('text-slate-400');
-  });
+// Tab Switching
+function switchTab(tabName) {
+  document.querySelectorAll('.view-tab').forEach(el => el.classList.add('hidden'));
+  document.querySelectorAll('.ios-segmented-btn').forEach(btn => btn.classList.remove('active', 'text-slate-600'));
 
-  document.getElementById(`tab-${tabId}`).classList.remove('hidden');
-  const activeBtn = document.getElementById(`nav-${tabId}`);
-  activeBtn.classList.add('bg-amber-500', 'text-slate-950', 'font-bold', 'shadow');
-  activeBtn.classList.remove('text-slate-400');
+  document.getElementById(`view-${tabName}`).classList.remove('hidden');
+
+  const navDesktop = document.getElementById(`tab-nav-${tabName}`);
+  const navMobile = document.getElementById(`m-tab-nav-${tabName}`);
+  if (navDesktop) navDesktop.classList.add('active');
+  if (navMobile) navMobile.classList.add('active');
 }
 
 // Render Dashboard
 function renderDashboard() {
   const menus = getCalculatedMenus();
-  const search = (document.getElementById('search-input')?.value || '').toLowerCase();
+  const search = (document.getElementById('search-menu')?.value || '').toLowerCase();
 
-  // Categories
-  const categories = ["All", ...new Set(SEED_DATA.menu.map(m => m.cat))];
-  const catContainer = document.getElementById('category-filters');
-  if (catContainer) {
-    catContainer.innerHTML = categories.map(cat => `
-      <button onclick="setCategory('${cat}')" class="px-3 py-1 rounded-xl text-xs font-semibold transition whitespace-nowrap ${
-        currentCategory === cat ? 'bg-slate-800 text-amber-400 border border-amber-500/30' : 'text-slate-400 hover:text-white'
+  // Category Pills
+  const cats = ["All", ...new Set(store.menu.map(m => m.cat))];
+  const pillContainer = document.getElementById('cat-filter-pills');
+  if (pillContainer) {
+    pillContainer.innerHTML = cats.map(cat => `
+      <button onclick="setCategoryFilter('${cat}')" class="px-3.5 py-1.5 rounded-full text-xs font-semibold transition whitespace-nowrap ${
+        selectedCatFilter === cat
+          ? 'bg-tukaps-500 text-white shadow-md shadow-tukaps-500/20'
+          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
       }">
         ${cat}
       </button>
     `).join('');
   }
 
-  // Filtered List
   const filtered = menus.filter(m => {
     const matchSearch = m.name.toLowerCase().includes(search) || m.id.toLowerCase().includes(search);
-    const matchCat = currentCategory === "All" || m.cat === currentCategory;
+    const matchCat = selectedCatFilter === "All" || m.cat === selectedCatFilter;
     return matchSearch && matchCat;
   });
 
-  // Render Table Rows
   const tbody = document.getElementById('dashboard-table-body');
   if (tbody) {
     tbody.innerHTML = filtered.map(m => {
-      const marginBadgeClass = m.marginPct >= 60
-        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+      const marginBadge = m.marginPct >= 60
+        ? 'bg-emerald-50 text-emerald-600 border-emerald-200'
         : m.marginPct >= 40
-        ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-        : 'bg-rose-500/10 text-rose-400 border-rose-500/20';
+        ? 'bg-tukaps-50 text-tukaps-600 border-tukaps-200'
+        : 'bg-rose-50 text-rose-600 border-rose-200';
 
       return `
-        <tr class="hover:bg-slate-800/40 transition">
-          <td class="py-3 px-4 font-sans">
-            <div class="font-bold text-white">${m.name}</div>
-            <div class="text-[10px] text-slate-500 font-mono">${m.id}</div>
+        <tr class="hover:bg-slate-50/80 transition">
+          <td class="py-3.5 px-6 font-sans">
+            <div class="font-bold text-slate-900">${m.name}</div>
+            <div class="text-[10px] text-slate-400 font-mono">${m.id}</div>
           </td>
-          <td class="py-3 px-4 font-sans">
-            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-slate-800 text-slate-300 border border-slate-700">
-              ${m.cat}
-            </span>
+          <td class="py-3.5 px-4 font-sans">
+            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-600">${m.cat}</span>
           </td>
-          <td class="py-3 px-4 text-right text-slate-300">${fmtRp(m.bahanCost)}</td>
-          <td class="py-3 px-4 text-right text-slate-300">${fmtRp(m.kemasanCost)}</td>
-          <td class="py-3 px-4 text-right font-bold text-amber-400 bg-amber-500/5">${fmtRp(m.totalModal)}</td>
-          <td class="py-3 px-4 text-right text-white font-semibold">${fmtRp(m.sellingPrice)}</td>
-          <td class="py-3 px-4 text-right text-emerald-400 font-bold">${fmtRp(m.laba)}</td>
-          <td class="py-3 px-4 text-center font-sans">
-            <span class="inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${marginBadgeClass}">
-              ${m.marginPct}%
-            </span>
+          <td class="py-3.5 px-4 text-right text-slate-600">${fmtRp(m.bahanCost)}</td>
+          <td class="py-3.5 px-4 text-right text-slate-600">${fmtRp(m.kemasanCost)}</td>
+          <td class="py-3.5 px-4 text-right text-slate-600">${fmtRp(m.overhead)}</td>
+          <td class="py-3.5 px-4 text-right font-bold text-tukaps-600 bg-tukaps-50/30">${fmtRp(m.totalModal)}</td>
+          <td class="py-3.5 px-4 text-right font-semibold text-slate-900">${fmtRp(m.sellingPrice)}</td>
+          <td class="py-3.5 px-4 text-right font-bold text-emerald-600">${fmtRp(m.laba)}</td>
+          <td class="py-3.5 px-4 text-center font-sans">
+            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${marginBadge}">${m.marginPct}%</span>
+          </td>
+          <td class="py-3.5 px-6 text-center font-sans">
+            <div class="flex items-center justify-center space-x-1.5">
+              <button onclick="editMenuModal('${m.id}')" class="p-1.5 rounded-lg text-slate-400 hover:text-tukaps-600 hover:bg-tukaps-50 transition" title="Edit Resep & Harga">
+                <i data-lucide="edit-3" class="w-4 h-4"></i>
+              </button>
+              <button onclick="deleteMenu('${m.id}')" class="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition" title="Hapus Menu">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+              </button>
+            </div>
           </td>
         </tr>
       `;
     }).join('');
   }
 
-  // Stats Update
-  document.getElementById('menu-counter-badge').innerText = `${filtered.length} Items`;
+  // Update Stats
+  document.getElementById('badge-menu-count').innerText = `${filtered.length} Menu`;
   if (menus.length > 0) {
     const sumHpp = menus.reduce((a, c) => a + c.totalModal, 0);
     const sumPrice = menus.reduce((a, c) => a + c.sellingPrice, 0);
-    const sumMarginPct = menus.reduce((a, c) => a + c.marginPct, 0);
+    const sumMargin = menus.reduce((a, c) => a + c.marginPct, 0);
     const maxMenu = [...menus].sort((a, b) => b.totalModal - a.totalModal)[0];
 
     document.getElementById('stat-total-menu').innerText = `${menus.length} Menu`;
     document.getElementById('stat-avg-hpp').innerText = fmtRp(sumHpp / menus.length);
     document.getElementById('stat-avg-price').innerText = fmtRp(sumPrice / menus.length);
-    document.getElementById('stat-avg-margin').innerText = `Profit Margin: ~${Math.round(sumMarginPct / menus.length)}%`;
+    document.getElementById('stat-avg-margin').innerText = `Margin Rata-rata: ~${Math.round(sumMargin / menus.length)}%`;
     document.getElementById('stat-max-hpp').innerText = fmtRp(maxMenu.totalModal);
-    document.getElementById('stat-max-menu-name').innerText = maxMenu.name;
+    document.getElementById('stat-max-name').innerText = maxMenu.name;
   }
 }
 
-function setCategory(cat) {
-  currentCategory = cat;
+function setCategoryFilter(cat) {
+  selectedCatFilter = cat;
   renderDashboard();
 }
 
@@ -213,20 +233,24 @@ function setCategory(cat) {
 function renderMasterTables() {
   const bahanBody = document.getElementById('bahan-table-body');
   if (bahanBody) {
-    bahanBody.innerHTML = SEED_DATA.bahan.map(b => {
+    bahanBody.innerHTML = store.bahan.map(b => {
       const unitPrice = b.packQty > 0 ? b.buyPrice / b.packQty : 0;
       return `
-        <tr class="hover:bg-slate-800/30">
-          <td class="py-2.5 px-4 font-semibold text-slate-400">${b.id}</td>
-          <td class="py-2.5 px-4 font-sans font-medium text-white">${b.name}</td>
-          <td class="py-2.5 px-4 font-sans">
-            <span class="bg-slate-800 text-slate-300 px-2 py-0.5 rounded text-[10px]">${b.cat}</span>
+        <tr class="hover:bg-slate-50/80 transition">
+          <td class="py-3.5 px-4 font-semibold text-slate-400">${b.id}</td>
+          <td class="py-3.5 px-4 font-sans font-bold text-slate-900">${b.name}</td>
+          <td class="py-3.5 px-4 font-sans"><span class="bg-slate-100 px-2 py-0.5 rounded text-[10px] font-semibold text-slate-600">${b.cat}</span></td>
+          <td class="py-3.5 px-4 font-sans text-slate-500">${b.unit}</td>
+          <td class="py-3.5 px-4 text-right font-medium text-slate-700">${b.packQty.toLocaleString('id-ID')}</td>
+          <td class="py-3.5 px-4 text-right font-medium text-slate-700">${fmtRp(b.buyPrice)}</td>
+          <td class="py-3.5 px-4 text-right font-bold text-tukaps-600 bg-tukaps-50/40">${fmtRp(unitPrice)}</td>
+          <td class="py-3.5 px-4 font-sans text-slate-500">${b.supplier}</td>
+          <td class="py-3.5 px-4 text-center font-sans">
+            <div class="flex items-center justify-center space-x-1">
+              <button onclick="openEditBahanModal('${b.id}')" class="p-1.5 rounded-lg text-slate-400 hover:text-tukaps-600 hover:bg-tukaps-50"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
+              <button onclick="deleteBahan('${b.id}')" class="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+            </div>
           </td>
-          <td class="py-2.5 px-4 font-sans text-slate-400">${b.unit}</td>
-          <td class="py-2.5 px-4 text-right text-slate-200">${b.packQty.toLocaleString('id-ID')}</td>
-          <td class="py-2.5 px-4 text-right text-slate-200">${fmtRp(b.buyPrice)}</td>
-          <td class="py-2.5 px-4 text-right font-bold text-amber-400 bg-amber-500/5">${fmtRp(unitPrice)}</td>
-          <td class="py-2.5 px-4 font-sans text-slate-400 truncate max-w-[150px]">${b.supplier}</td>
         </tr>
       `;
     }).join('');
@@ -234,31 +258,446 @@ function renderMasterTables() {
 
   const kemasanBody = document.getElementById('kemasan-table-body');
   if (kemasanBody) {
-    kemasanBody.innerHTML = SEED_DATA.kemasan.map(k => {
+    kemasanBody.innerHTML = store.kemasan.map(k => {
       const unitPrice = k.packQty > 0 ? k.buyPrice / k.packQty : 0;
       return `
-        <tr class="hover:bg-slate-800/30">
-          <td class="py-2.5 px-4 font-semibold text-slate-400">${k.id}</td>
-          <td class="py-2.5 px-4 font-sans font-medium text-white">${k.name}</td>
-          <td class="py-2.5 px-4 font-sans">
-            <span class="bg-slate-800 text-slate-300 px-2 py-0.5 rounded text-[10px]">${k.cat}</span>
+        <tr class="hover:bg-slate-50/80 transition">
+          <td class="py-3.5 px-4 font-semibold text-slate-400">${k.id}</td>
+          <td class="py-3.5 px-4 font-sans font-bold text-slate-900">${k.name}</td>
+          <td class="py-3.5 px-4 font-sans"><span class="bg-slate-100 px-2 py-0.5 rounded text-[10px] font-semibold text-slate-600">${k.cat}</span></td>
+          <td class="py-3.5 px-4 font-sans text-slate-500">${k.unit}</td>
+          <td class="py-3.5 px-4 text-right font-medium text-slate-700">${k.packQty.toLocaleString('id-ID')}</td>
+          <td class="py-3.5 px-4 text-right font-medium text-slate-700">${fmtRp(k.buyPrice)}</td>
+          <td class="py-3.5 px-4 text-right font-bold text-tukaps-600 bg-tukaps-50/40">${fmtRp(unitPrice)}</td>
+          <td class="py-3.5 px-4 font-sans text-slate-500">${k.supplier}</td>
+          <td class="py-3.5 px-4 text-center font-sans">
+            <div class="flex items-center justify-center space-x-1">
+              <button onclick="openEditKemasanModal('${k.id}')" class="p-1.5 rounded-lg text-slate-400 hover:text-tukaps-600 hover:bg-tukaps-50"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
+              <button onclick="deleteKemasan('${k.id}')" class="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+            </div>
           </td>
-          <td class="py-2.5 px-4 font-sans text-slate-400">${k.unit}</td>
-          <td class="py-2.5 px-4 text-right text-slate-200">${k.packQty.toLocaleString('id-ID')}</td>
-          <td class="py-2.5 px-4 text-right text-slate-200">${fmtRp(k.buyPrice)}</td>
-          <td class="py-2.5 px-4 text-right font-bold text-amber-400 bg-amber-500/5">${fmtRp(unitPrice)}</td>
-          <td class="py-2.5 px-4 font-sans text-slate-400 truncate max-w-[150px]">${k.supplier}</td>
         </tr>
       `;
     }).join('');
   }
 }
 
-// Initialize Page
+// Modal Helpers
+function closeModal() {
+  document.getElementById('modal-overlay').classList.add('hidden');
+}
+
+function openModalHtml(html) {
+  const container = document.getElementById('modal-container');
+  container.innerHTML = html;
+  document.getElementById('modal-overlay').classList.remove('hidden');
+  if (window.lucide) lucide.createIcons();
+}
+
+// MENU EDITING & ADDING
+function editMenuModal(menuId) {
+  const m = store.menu.find(x => x.id === menuId);
+  if (!m) return;
+
+  const bahanCheckboxes = store.bahan.map(b => {
+    const qty = (m.recipe && m.recipe[b.id]) ? m.recipe[b.id] : 0;
+    return `
+      <div class="flex items-center justify-between py-1.5 border-b border-slate-100 text-xs">
+        <span class="font-medium text-slate-700">${b.name} (${b.unit})</span>
+        <input type="number" step="any" data-bahan-id="${b.id}" value="${qty}" class="recipe-bahan-input ios-input w-24 px-2 py-1 rounded-lg text-right font-mono text-xs">
+      </div>
+    `;
+  }).join('');
+
+  const kemasanCheckboxes = store.kemasan.map(k => {
+    const qty = (m.pkg && m.pkg[k.id]) ? m.pkg[k.id] : 0;
+    return `
+      <div class="flex items-center justify-between py-1.5 border-b border-slate-100 text-xs">
+        <span class="font-medium text-slate-700">${k.name} (${k.unit})</span>
+        <input type="number" step="any" data-kemasan-id="${k.id}" value="${qty}" class="recipe-kemasan-input ios-input w-24 px-2 py-1 rounded-lg text-right font-mono text-xs">
+      </div>
+    `;
+  }).join('');
+
+  openModalHtml(`
+    <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+      <h3 class="text-sm font-extrabold text-slate-900">Edit Resep & Pricing: ${m.name}</h3>
+      <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+    </div>
+
+    <div class="space-y-3 text-xs">
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="font-bold text-slate-700 block mb-1">Nama Menu</label>
+          <input type="text" id="edit-menu-name" value="${m.name}" class="ios-input w-full px-3 py-2 rounded-xl text-xs font-semibold">
+        </div>
+        <div>
+          <label class="font-bold text-slate-700 block mb-1">Kategori</label>
+          <input type="text" id="edit-menu-cat" value="${m.cat}" class="ios-input w-full px-3 py-2 rounded-xl text-xs font-semibold">
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="font-bold text-slate-700 block mb-1">Harga Jual (Rp)</label>
+          <input type="number" id="edit-menu-price" value="${m.sellingPrice}" class="ios-input w-full px-3 py-2 rounded-xl text-xs font-mono font-bold">
+        </div>
+        <div>
+          <label class="font-bold text-slate-700 block mb-1">Biaya Overhead (Rp)</label>
+          <input type="number" id="edit-menu-overhead" value="${m.overhead || 0}" class="ios-input w-full px-3 py-2 rounded-xl text-xs font-mono">
+        </div>
+      </div>
+
+      <div>
+        <h4 class="font-extrabold text-slate-900 mb-2 border-t border-slate-100 pt-3">Takaran Bahan Baku per Menu:</h4>
+        <div class="max-h-44 overflow-y-auto border border-slate-100 rounded-xl p-2 bg-slate-50/50">
+          ${bahanCheckboxes}
+        </div>
+      </div>
+
+      <div>
+        <h4 class="font-extrabold text-slate-900 mb-2 border-t border-slate-100 pt-3">Kemasan Yang Digunakan:</h4>
+        <div class="max-h-36 overflow-y-auto border border-slate-100 rounded-xl p-2 bg-slate-50/50">
+          ${kemasanCheckboxes}
+        </div>
+      </div>
+    </div>
+
+    <div class="flex items-center justify-end space-x-2 border-t border-slate-100 pt-3">
+      <button onclick="closeModal()" class="px-4 py-2 rounded-xl bg-slate-100 text-slate-600 font-bold text-xs">Batal</button>
+      <button onclick="saveMenuEdit('${m.id}')" class="ios-btn-primary px-5 py-2 rounded-xl text-white font-bold text-xs">Simpan Perubahan</button>
+    </div>
+  `);
+}
+
+function saveMenuEdit(menuId) {
+  const m = store.menu.find(x => x.id === menuId);
+  if (!m) return;
+
+  m.name = document.getElementById('edit-menu-name').value;
+  m.cat = document.getElementById('edit-menu-cat').value;
+  m.sellingPrice = Number(document.getElementById('edit-menu-price').value);
+  m.overhead = Number(document.getElementById('edit-menu-overhead').value);
+
+  const newRecipe = {};
+  document.querySelectorAll('.recipe-bahan-input').forEach(inp => {
+    const qty = Number(inp.value);
+    if (qty > 0) newRecipe[inp.getAttribute('data-bahan-id')] = qty;
+  });
+  m.recipe = newRecipe;
+
+  const newPkg = {};
+  document.querySelectorAll('.recipe-kemasan-input').forEach(inp => {
+    const qty = Number(inp.value);
+    if (qty > 0) newPkg[inp.getAttribute('data-kemasan-id')] = qty;
+  });
+  m.pkg = newPkg;
+
+  saveStore();
+  closeModal();
+  renderDashboard();
+}
+
+function openAddMenuModal() {
+  const nextId = "M" + String(store.menu.length + 1).padStart(3, '0');
+  
+  openModalHtml(`
+    <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+      <h3 class="text-sm font-extrabold text-slate-900">Buat Menu Resep Baru</h3>
+      <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+    </div>
+
+    <div class="space-y-3 text-xs">
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="font-bold text-slate-700 block mb-1">Nama Menu Baru</label>
+          <input type="text" id="new-menu-name" placeholder="Misal: Matcha Latte 250ml" class="ios-input w-full px-3 py-2 rounded-xl text-xs font-semibold">
+        </div>
+        <div>
+          <label class="font-bold text-slate-700 block mb-1">Kategori</label>
+          <input type="text" id="new-menu-cat" placeholder="Misal: Non-Coffee" value="Non-Coffee" class="ios-input w-full px-3 py-2 rounded-xl text-xs font-semibold">
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="font-bold text-slate-700 block mb-1">Harga Jual (Rp)</label>
+          <input type="number" id="new-menu-price" value="20000" class="ios-input w-full px-3 py-2 rounded-xl text-xs font-mono font-bold">
+        </div>
+        <div>
+          <label class="font-bold text-slate-700 block mb-1">Biaya Overhead (Rp)</label>
+          <input type="number" id="new-menu-overhead" value="0" class="ios-input w-full px-3 py-2 rounded-xl text-xs font-mono">
+        </div>
+      </div>
+    </div>
+
+    <div class="flex items-center justify-end space-x-2 border-t border-slate-100 pt-3">
+      <button onclick="closeModal()" class="px-4 py-2 rounded-xl bg-slate-100 text-slate-600 font-bold text-xs">Batal</button>
+      <button onclick="createMenu('${nextId}')" class="ios-btn-primary px-5 py-2 rounded-xl text-white font-bold text-xs">Buat Menu</button>
+    </div>
+  `);
+}
+
+function createMenu(newId) {
+  const name = document.getElementById('new-menu-name').value;
+  const cat = document.getElementById('new-menu-cat').value;
+  const sellingPrice = Number(document.getElementById('new-menu-price').value);
+  const overhead = Number(document.getElementById('new-menu-overhead').value);
+
+  if (!name) return alert('Nama menu wajib diisi!');
+
+  store.menu.push({
+    id: newId,
+    name,
+    cat,
+    sellingPrice,
+    overhead,
+    recipe: {},
+    pkg: { KMS01: 1, KMS03: 1 }
+  });
+
+  saveStore();
+  closeModal();
+  renderDashboard();
+}
+
+function deleteMenu(id) {
+  if (confirm('Yakin ingin menghapus menu ini?')) {
+    store.menu = store.menu.filter(x => x.id !== id);
+    saveStore();
+    renderDashboard();
+  }
+}
+
+// EDITING BAHAN & KEMASAN
+function openAddBahanModal() {
+  const nextId = "BHN" + String(store.bahan.length + 1).padStart(2, '0');
+  openModalHtml(`
+    <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+      <h3 class="text-sm font-extrabold text-slate-900">Tambah Bahan Baku Baru</h3>
+      <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+    </div>
+    <div class="space-y-3 text-xs">
+      <div>
+        <label class="font-bold text-slate-700 block mb-1">Nama Bahan</label>
+        <input type="text" id="b-name" placeholder="Misal: Sirup Hazelnut" class="ios-input w-full px-3 py-2 rounded-xl">
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="font-bold text-slate-700 block mb-1">Kategori</label>
+          <input type="text" id="b-cat" value="Sirup" class="ios-input w-full px-3 py-2 rounded-xl">
+        </div>
+        <div>
+          <label class="font-bold text-slate-700 block mb-1">Satuan</label>
+          <input type="text" id="b-unit" value="ml" class="ios-input w-full px-3 py-2 rounded-xl">
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="font-bold text-slate-700 block mb-1">Isi Kemasan</label>
+          <input type="number" id="b-pack" value="700" class="ios-input w-full px-3 py-2 rounded-xl">
+        </div>
+        <div>
+          <label class="font-bold text-slate-700 block mb-1">Harga Beli Total (Rp)</label>
+          <input type="number" id="b-price" value="95000" class="ios-input w-full px-3 py-2 rounded-xl">
+        </div>
+      </div>
+      <div>
+        <label class="font-bold text-slate-700 block mb-1">Supplier</label>
+        <input type="text" id="b-supplier" placeholder="Tokopedia" class="ios-input w-full px-3 py-2 rounded-xl">
+      </div>
+    </div>
+    <div class="flex items-center justify-end space-x-2 border-t border-slate-100 pt-3">
+      <button onclick="closeModal()" class="px-4 py-2 rounded-xl bg-slate-100 text-slate-600 font-bold text-xs">Batal</button>
+      <button onclick="saveNewBahan('${nextId}')" class="ios-btn-primary px-5 py-2 rounded-xl text-white font-bold text-xs">Simpan Bahan</button>
+    </div>
+  `);
+}
+
+function saveNewBahan(newId) {
+  const name = document.getElementById('b-name').value;
+  if (!name) return alert('Nama bahan wajib diisi!');
+
+  store.bahan.push({
+    id: newId,
+    name,
+    cat: document.getElementById('b-cat').value,
+    unit: document.getElementById('b-unit').value,
+    packQty: Number(document.getElementById('b-pack').value),
+    buyPrice: Number(document.getElementById('b-price').value),
+    supplier: document.getElementById('b-supplier').value || '-'
+  });
+
+  saveStore();
+  closeModal();
+  renderMasterTables();
+  renderDashboard();
+}
+
+function openEditBahanModal(id) {
+  const b = store.bahan.find(x => x.id === id);
+  if (!b) return;
+
+  openModalHtml(`
+    <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+      <h3 class="text-sm font-extrabold text-slate-900">Edit Harga / Data Bahan: ${b.name}</h3>
+      <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+    </div>
+    <div class="space-y-3 text-xs">
+      <div>
+        <label class="font-bold text-slate-700 block mb-1">Nama Bahan</label>
+        <input type="text" id="eb-name" value="${b.name}" class="ios-input w-full px-3 py-2 rounded-xl">
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="font-bold text-slate-700 block mb-1">Isi Kemasan (${b.unit})</label>
+          <input type="number" id="eb-pack" value="${b.packQty}" class="ios-input w-full px-3 py-2 rounded-xl">
+        </div>
+        <div>
+          <label class="font-bold text-slate-700 block mb-1">Harga Beli Total (Rp)</label>
+          <input type="number" id="eb-price" value="${b.buyPrice}" class="ios-input w-full px-3 py-2 rounded-xl font-bold">
+        </div>
+      </div>
+    </div>
+    <div class="flex items-center justify-end space-x-2 border-t border-slate-100 pt-3">
+      <button onclick="closeModal()" class="px-4 py-2 rounded-xl bg-slate-100 text-slate-600 font-bold text-xs">Batal</button>
+      <button onclick="updateBahan('${b.id}')" class="ios-btn-primary px-5 py-2 rounded-xl text-white font-bold text-xs">Update Harga</button>
+    </div>
+  `);
+}
+
+function updateBahan(id) {
+  const b = store.bahan.find(x => x.id === id);
+  if (!b) return;
+
+  b.name = document.getElementById('eb-name').value;
+  b.packQty = Number(document.getElementById('eb-pack').value);
+  b.buyPrice = Number(document.getElementById('eb-price').value);
+
+  saveStore();
+  closeModal();
+  renderMasterTables();
+  renderDashboard();
+}
+
+function deleteBahan(id) {
+  if (confirm('Hapus bahan ini?')) {
+    store.bahan = store.bahan.filter(x => x.id !== id);
+    saveStore();
+    renderMasterTables();
+    renderDashboard();
+  }
+}
+
+// KEMASAN ADD / EDIT
+function openAddKemasanModal() {
+  const nextId = "KMS" + String(store.kemasan.length + 1).padStart(2, '0');
+  openModalHtml(`
+    <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+      <h3 class="text-sm font-extrabold text-slate-900">Tambah Item Kemasan Baru</h3>
+      <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+    </div>
+    <div class="space-y-3 text-xs">
+      <div>
+        <label class="font-bold text-slate-700 block mb-1">Nama Kemasan</label>
+        <input type="text" id="k-name" placeholder="Misal: Cup Hot 8oz" class="ios-input w-full px-3 py-2 rounded-xl">
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="font-bold text-slate-700 block mb-1">Isi Kemasan (pcs)</label>
+          <input type="number" id="k-pack" value="50" class="ios-input w-full px-3 py-2 rounded-xl">
+        </div>
+        <div>
+          <label class="font-bold text-slate-700 block mb-1">Harga Beli Total (Rp)</label>
+          <input type="number" id="k-price" value="25000" class="ios-input w-full px-3 py-2 rounded-xl">
+        </div>
+      </div>
+    </div>
+    <div class="flex items-center justify-end space-x-2 border-t border-slate-100 pt-3">
+      <button onclick="closeModal()" class="px-4 py-2 rounded-xl bg-slate-100 text-slate-600 font-bold text-xs">Batal</button>
+      <button onclick="saveNewKemasan('${nextId}')" class="ios-btn-primary px-5 py-2 rounded-xl text-white font-bold text-xs">Simpan Kemasan</button>
+    </div>
+  `);
+}
+
+function saveNewKemasan(newId) {
+  const name = document.getElementById('k-name').value;
+  if (!name) return alert('Nama kemasan wajib diisi!');
+
+  store.kemasan.push({
+    id: newId,
+    name,
+    cat: 'Cup',
+    unit: 'pcs',
+    packQty: Number(document.getElementById('k-pack').value),
+    buyPrice: Number(document.getElementById('k-price').value),
+    supplier: '-'
+  });
+
+  saveStore();
+  closeModal();
+  renderMasterTables();
+  renderDashboard();
+}
+
+function openEditKemasanModal(id) {
+  const k = store.kemasan.find(x => x.id === id);
+  if (!k) return;
+
+  openModalHtml(`
+    <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+      <h3 class="text-sm font-extrabold text-slate-900">Edit Kemasan: ${k.name}</h3>
+      <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+    </div>
+    <div class="space-y-3 text-xs">
+      <div>
+        <label class="font-bold text-slate-700 block mb-1">Nama Kemasan</label>
+        <input type="text" id="ek-name" value="${k.name}" class="ios-input w-full px-3 py-2 rounded-xl">
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="font-bold text-slate-700 block mb-1">Isi Kemasan (pcs)</label>
+          <input type="number" id="ek-pack" value="${k.packQty}" class="ios-input w-full px-3 py-2 rounded-xl">
+        </div>
+        <div>
+          <label class="font-bold text-slate-700 block mb-1">Harga Beli Total (Rp)</label>
+          <input type="number" id="ek-price" value="${k.buyPrice}" class="ios-input w-full px-3 py-2 rounded-xl font-bold">
+        </div>
+      </div>
+    </div>
+    <div class="flex items-center justify-end space-x-2 border-t border-slate-100 pt-3">
+      <button onclick="closeModal()" class="px-4 py-2 rounded-xl bg-slate-100 text-slate-600 font-bold text-xs">Batal</button>
+      <button onclick="updateKemasan('${k.id}')" class="ios-btn-primary px-5 py-2 rounded-xl text-white font-bold text-xs">Update Kemasan</button>
+    </div>
+  `);
+}
+
+function updateKemasan(id) {
+  const k = store.kemasan.find(x => x.id === id);
+  if (!k) return;
+
+  k.name = document.getElementById('ek-name').value;
+  k.packQty = Number(document.getElementById('ek-pack').value);
+  k.buyPrice = Number(document.getElementById('ek-price').value);
+
+  saveStore();
+  closeModal();
+  renderMasterTables();
+  renderDashboard();
+}
+
+function deleteKemasan(id) {
+  if (confirm('Hapus kemasan ini?')) {
+    store.kemasan = store.kemasan.filter(x => x.id !== id);
+    saveStore();
+    renderMasterTables();
+    renderDashboard();
+  }
+}
+
+// Initial Launch
 document.addEventListener('DOMContentLoaded', () => {
   renderDashboard();
   renderMasterTables();
-  if (window.lucide) {
-    lucide.createIcons();
-  }
+  if (window.lucide) lucide.createIcons();
 });
