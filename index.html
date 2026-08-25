@@ -1,167 +1,238 @@
 <!DOCTYPE html>
-<html lang="id" class="dark">
+<html lang="id">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TUKAPS COFFEE — Modern HPP & Recipe Dashboard</title>
+  <title>TUKAPS COFFEE — HPP & Recipe Manager (iOS Style)</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
-      darkMode: 'class',
       theme: {
         extend: {
           colors: {
-            brand: {
-              50: '#fffbe1',
-              100: '#fef3c7',
-              400: '#fbbf24',
-              500: '#f59e0b',
-              600: '#d97706',
-              900: '#78350f',
+            tukaps: {
+              50: '#fff7ed',
+              100: '#ffedd5',
+              200: '#fed7aa',
+              500: '#f97316',
+              600: '#ea580c',
+              700: '#c2410c',
+              900: '#431407'
             }
+          },
+          fontFamily: {
+            sans: ['-apple-system', 'BlinkMacSystemFont', '"SF Pro Display"', '"SF Pro Text"', 'Inter', 'sans-serif']
           }
         }
       }
     }
   </script>
   <!-- Google Fonts & Lucide Icons -->
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/lucide@latest"></script>
   <style>
-    body { font-family: 'Plus Jakarta Sans', sans-serif; }
-    .font-mono { font-family: 'JetBrains Mono', monospace; }
+    body {
+      background-color: #f8fafc;
+      color: #0f172a;
+      -webkit-font-smoothing: antialiased;
+    }
+    .ios-glass {
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+    }
+    .ios-card {
+      background: #ffffff;
+      border: 1px solid rgba(226, 232, 240, 0.8);
+      box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03), 0 2px 6px -1px rgba(0, 0, 0, 0.02);
+    }
+    .ios-input {
+      background: #f1f5f9;
+      border: 1px solid transparent;
+      transition: all 0.2s ease;
+    }
+    .ios-input:focus {
+      background: #ffffff;
+      border-color: #f97316;
+      box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.15);
+      outline: none;
+    }
+    .ios-btn-primary {
+      background: linear-gradient(135deg, #ea580c 0%, #f97316 100%);
+      box-shadow: 0 4px 12px rgba(234, 88, 12, 0.25);
+    }
+    .ios-btn-primary:hover {
+      box-shadow: 0 6px 16px rgba(234, 88, 12, 0.35);
+      transform: translateY(-1px);
+    }
+    .ios-segmented {
+      background: #e2e8f0;
+      padding: 3px;
+      border-radius: 14px;
+    }
+    .ios-segmented-btn {
+      padding: 6px 16px;
+      border-radius: 11px;
+      font-size: 13px;
+      font-weight: 600;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .ios-segmented-btn.active {
+      background: #ffffff;
+      color: #ea580c;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
   </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen antialiased flex flex-col selection:bg-amber-500 selection:text-slate-950">
+<body class="min-h-screen flex flex-col pb-12">
 
-  <!-- Top Header -->
-  <header class="bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-4 lg:px-8 py-3 sticky top-0 z-30 flex items-center justify-between shadow-md">
+  <!-- iOS Frosted Glass Header -->
+  <header class="ios-glass sticky top-0 z-40 border-b border-slate-200/80 px-4 lg:px-8 py-3.5 flex items-center justify-between">
     <div class="flex items-center space-x-3">
-      <div class="bg-amber-500 text-slate-950 p-2 rounded-xl font-black text-lg shadow-inner flex items-center justify-center">
+      <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-tukaps-600 to-tukaps-500 flex items-center justify-center text-white shadow-md shadow-tukaps-500/20">
         <i data-lucide="coffee" class="w-5 h-5 stroke-[2.5]"></i>
       </div>
       <div>
         <div class="flex items-center space-x-2">
-          <h1 class="text-sm font-extrabold tracking-tight text-white uppercase">TUKAPS COFFEE</h1>
-          <span class="bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
-            v2.0 Dashboard
+          <h1 class="text-base font-extrabold tracking-tight text-slate-900">TUKAPS COFFEE</h1>
+          <span class="bg-tukaps-50 text-tukaps-600 border border-tukaps-200 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+            iOS Studio Edition
           </span>
         </div>
-        <p class="text-[11px] text-slate-400">Kalkulator HPP & Presisi Resep Produk</p>
+        <p class="text-[11px] text-slate-500 font-medium">Kalkulator HPP, Resep Menu & Manajemen Biaya Real-time</p>
       </div>
     </div>
 
-    <!-- Tab Navigation -->
-    <nav class="flex items-center space-x-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
-      <button onclick="switchTab('dashboard')" id="nav-dashboard" class="tab-btn bg-amber-500 text-slate-950 px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 shadow">
-        <i data-lucide="layout-dashboard" class="w-3.5 h-3.5"></i>
+    <!-- Segmented Navigation (iOS Style) -->
+    <div class="ios-segmented hidden sm:flex items-center space-x-1">
+      <button onclick="switchTab('dashboard')" id="tab-nav-dashboard" class="ios-segmented-btn active flex items-center space-x-1.5">
+        <i data-lucide="layout-grid" class="w-4 h-4"></i>
         <span>Dashboard HPP</span>
       </button>
-      <button onclick="switchTab('bahan')" id="nav-bahan" class="tab-btn text-slate-400 hover:text-white px-3.5 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1.5">
-        <i data-lucide="coffee" class="w-3.5 h-3.5"></i>
+      <button onclick="switchTab('bahan')" id="tab-nav-bahan" class="ios-segmented-btn text-slate-600 flex items-center space-x-1.5">
+        <i data-lucide="coffee" class="w-4 h-4"></i>
         <span>Master Bahan</span>
       </button>
-      <button onclick="switchTab('kemasan')" id="nav-kemasan" class="tab-btn text-slate-400 hover:text-white px-3.5 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1.5">
-        <i data-lucide="package" class="w-3.5 h-3.5"></i>
+      <button onclick="switchTab('kemasan')" id="tab-nav-kemasan" class="ios-segmented-btn text-slate-600 flex items-center space-x-1.5">
+        <i data-lucide="package" class="w-4 h-4"></i>
         <span>Master Kemasan</span>
       </button>
-    </nav>
+    </div>
+
+    <!-- Storage Reset / Action -->
+    <div class="flex items-center space-x-2">
+      <button onclick="openAddMenuModal()" class="ios-btn-primary text-white text-xs font-bold px-3.5 py-2 rounded-xl flex items-center space-x-1.5 transition">
+        <i data-lucide="plus" class="w-4 h-4"></i>
+        <span>Tambah Menu</span>
+      </button>
+    </div>
   </header>
 
+  <!-- Mobile Segmented Bar -->
+  <div class="sm:hidden px-4 pt-3">
+    <div class="ios-segmented flex items-center justify-between w-full">
+      <button onclick="switchTab('dashboard')" id="m-tab-nav-dashboard" class="ios-segmented-btn active flex-1 text-center">Dashboard</button>
+      <button onclick="switchTab('bahan')" id="m-tab-nav-bahan" class="ios-segmented-btn text-slate-600 flex-1 text-center">Bahan</button>
+      <button onclick="switchTab('kemasan')" id="m-tab-nav-kemasan" class="ios-segmented-btn text-slate-600 flex-1 text-center">Kemasan</button>
+    </div>
+  </div>
+
   <!-- Main Container -->
-  <main class="flex-1 p-4 lg:p-6 max-w-[1600px] w-full mx-auto space-y-5">
-    
-    <!-- Top Summary Metric Cards -->
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-      <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex items-center justify-between shadow-sm">
-        <div>
-          <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">Total Menu</span>
-          <div id="stat-total-menu" class="text-2xl font-extrabold text-white mt-0.5">21 Menu</div>
-          <span class="text-[10px] text-emerald-400 font-medium flex items-center mt-1">
-            <i data-lucide="check-circle" class="w-3 h-3 mr-1"></i> Excel Verified
-          </span>
+  <main class="flex-1 p-4 lg:p-8 max-w-[1600px] w-full mx-auto space-y-6">
+
+    <!-- Analytics Cards (Apple Widgets Style) -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="ios-card p-4 rounded-3xl relative overflow-hidden">
+        <div class="flex items-center justify-between">
+          <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Menu</span>
+          <div class="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+            <i data-lucide="layers" class="w-4 h-4"></i>
+          </div>
         </div>
-        <div class="bg-blue-500/10 p-3 rounded-xl text-blue-400 border border-blue-500/20">
-          <i data-lucide="layers" class="w-5 h-5"></i>
-        </div>
+        <div id="stat-total-menu" class="text-2xl font-black text-slate-900 mt-2">0 Menu</div>
+        <p class="text-[11px] text-emerald-600 font-semibold mt-1 flex items-center">
+          <i data-lucide="check-circle-2" class="w-3.5 h-3.5 mr-1"></i> Data Tersimpan
+        </p>
       </div>
 
-      <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex items-center justify-between shadow-sm">
-        <div>
-          <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">Rata-Rata Modal (HPP)</span>
-          <div id="stat-avg-hpp" class="text-2xl font-extrabold text-amber-400 mt-0.5">Rp 0</div>
-          <span class="text-[10px] text-slate-400 mt-1 block">Bahan + Kemasan</span>
+      <div class="ios-card p-4 rounded-3xl relative overflow-hidden">
+        <div class="flex items-center justify-between">
+          <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Rata-Rata HPP (Modal)</span>
+          <div class="w-8 h-8 rounded-xl bg-tukaps-50 text-tukaps-600 flex items-center justify-center">
+            <i data-lucide="calculator" class="w-4 h-4"></i>
+          </div>
         </div>
-        <div class="bg-amber-500/10 p-3 rounded-xl text-amber-400 border border-amber-500/20">
-          <i data-lucide="calculator" class="w-5 h-5"></i>
-        </div>
+        <div id="stat-avg-hpp" class="text-2xl font-black text-tukaps-600 mt-2">Rp 0</div>
+        <p class="text-[11px] text-slate-500 font-medium mt-1">Bahan + Kemasan + Overhead</p>
       </div>
 
-      <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex items-center justify-between shadow-sm">
-        <div>
-          <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">Rata-Rata Harga Jual</span>
-          <div id="stat-avg-price" class="text-2xl font-extrabold text-emerald-400 mt-0.5">Rp 0</div>
-          <span id="stat-avg-margin" class="text-[10px] text-emerald-400 font-medium mt-1 block">
-            Profit Margin: ~54%
-          </span>
+      <div class="ios-card p-4 rounded-3xl relative overflow-hidden">
+        <div class="flex items-center justify-between">
+          <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Rata-Rata Harga Jual</span>
+          <div class="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+            <i data-lucide="trending-up" class="w-4 h-4"></i>
+          </div>
         </div>
-        <div class="bg-emerald-500/10 p-3 rounded-xl text-emerald-400 border border-emerald-500/20">
-          <i data-lucide="trending-up" class="w-5 h-5"></i>
-        </div>
+        <div id="stat-avg-price" class="text-2xl font-black text-emerald-600 mt-2">Rp 0</div>
+        <p id="stat-avg-margin" class="text-[11px] text-emerald-600 font-bold mt-1">Margin: 0%</p>
       </div>
 
-      <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex items-center justify-between shadow-sm">
-        <div>
-          <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">Modal HPP Tertinggi</span>
-          <div id="stat-max-hpp" class="text-2xl font-extrabold text-rose-400 mt-0.5">Rp 0</div>
-          <span id="stat-max-menu-name" class="text-[10px] text-slate-300 truncate max-w-[140px] block mt-1">-</span>
+      <div class="ios-card p-4 rounded-3xl relative overflow-hidden">
+        <div class="flex items-center justify-between">
+          <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">HPP Tertinggi</span>
+          <div class="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
+            <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
+          </div>
         </div>
-        <div class="bg-rose-500/10 p-3 rounded-xl text-rose-400 border border-rose-500/20">
-          <i data-lucide="bar-chart-3" class="w-5 h-5"></i>
-        </div>
+        <div id="stat-max-hpp" class="text-2xl font-black text-rose-600 mt-2">Rp 0</div>
+        <p id="stat-max-name" class="text-[11px] text-slate-500 truncate mt-1">-</p>
       </div>
     </div>
 
-    <!-- TAB 1: DASHBOARD -->
-    <section id="tab-dashboard" class="tab-content space-y-4">
-      <!-- Search & Category Bar -->
-      <div class="bg-slate-900 border border-slate-800 p-3 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-3">
+    <!-- TAB 1: DASHBOARD HPP & RESEP -->
+    <section id="view-dashboard" class="view-tab space-y-4">
+      <!-- Search & Category Pill Controls -->
+      <div class="ios-card p-3.5 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-3">
         <div class="relative flex-1 w-full max-w-md">
-          <i data-lucide="search" class="w-4 h-4 absolute left-3 top-3 text-slate-500"></i>
-          <input type="text" id="search-input" onkeyup="renderDashboard()" placeholder="Cari nama menu coffee / non-coffee..." class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500">
+          <i data-lucide="search" class="w-4 h-4 absolute left-3.5 top-3 text-slate-400"></i>
+          <input type="text" id="search-menu" onkeyup="renderDashboard()" placeholder="Cari menu Tukaps..." class="ios-input w-full rounded-xl pl-10 pr-4 py-2 text-xs font-medium text-slate-800 placeholder-slate-400">
         </div>
-        <div class="flex items-center space-x-1 w-full md:w-auto overflow-x-auto pb-1 md:pb-0" id="category-filters">
-          <!-- Populated by JS -->
+        <div class="flex items-center space-x-1.5 overflow-x-auto w-full md:w-auto pb-1 md:pb-0" id="cat-filter-pills">
+          <!-- Rendered by JS -->
         </div>
       </div>
 
-      <!-- Main Compact Table -->
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-        <div class="px-5 py-3 border-b border-slate-800 bg-slate-950/60 flex items-center justify-between">
+      <!-- Main Menu Table (iOS List Style) -->
+      <div class="ios-card rounded-3xl overflow-hidden shadow-sm">
+        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
           <div>
-            <h2 class="text-xs font-bold text-white uppercase tracking-wider">Ringkasan Kalkulasi HPP & Resep Menu</h2>
-            <p class="text-[11px] text-slate-400">Tersinkron langsung dengan data resep & harga bahan baku</p>
+            <h2 class="text-xs font-extrabold text-slate-900 uppercase tracking-wider">Kalkulasi HPP & Resep Aktif</h2>
+            <p class="text-[11px] text-slate-500">Klik tombol edit untuk mengubah komposisi resep, overhead, atau harga jual.</p>
           </div>
-          <span id="menu-counter-badge" class="bg-slate-800 text-slate-300 px-3 py-1 rounded-lg text-xs font-mono font-medium">0 Items</span>
+          <span id="badge-menu-count" class="bg-tukaps-50 text-tukaps-600 text-xs font-bold px-3 py-1 rounded-full border border-tukaps-200">
+            0 Menu
+          </span>
         </div>
 
         <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs text-slate-300">
-            <thead class="bg-slate-950 text-slate-400 uppercase text-[10px] font-bold tracking-wider border-b border-slate-800">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-50 text-slate-400 uppercase text-[10px] font-bold tracking-wider border-b border-slate-100">
               <tr>
-                <th class="py-3 px-4">Kode & Nama Menu</th>
-                <th class="py-3 px-4">Kategori</th>
-                <th class="py-3 px-4 text-right">Biaya Bahan</th>
-                <th class="py-3 px-4 text-right">Biaya Kemasan</th>
-                <th class="py-3 px-4 text-right">Total HPP (Modal)</th>
-                <th class="py-3 px-4 text-right">Harga Jual</th>
-                <th class="py-3 px-4 text-right">Laba Bersih</th>
-                <th class="py-3 px-4 text-center">Profit Margin</th>
+                <th class="py-3.5 px-6">Nama Menu</th>
+                <th class="py-3.5 px-4">Kategori</th>
+                <th class="py-3.5 px-4 text-right">Biaya Bahan</th>
+                <th class="py-3.5 px-4 text-right">Biaya Kemasan</th>
+                <th class="py-3.5 px-4 text-right">Biaya Overhead</th>
+                <th class="py-3.5 px-4 text-right">Total HPP</th>
+                <th class="py-3.5 px-4 text-right">Harga Jual</th>
+                <th class="py-3.5 px-4 text-right">Laba Bersih</th>
+                <th class="py-3.5 px-4 text-center">Profit Margin</th>
+                <th class="py-3.5 px-6 text-center">Aksi</th>
               </tr>
             </thead>
-            <tbody id="dashboard-table-body" class="divide-y divide-slate-800/60 font-mono">
-              <!-- Rendered via JS -->
+            <tbody id="dashboard-table-body" class="divide-y divide-slate-100 font-mono">
+              <!-- Rendered by JS -->
             </tbody>
           </table>
         </div>
@@ -169,33 +240,38 @@
     </section>
 
     <!-- TAB 2: MASTER BAHAN -->
-    <section id="tab-bahan" class="tab-content hidden space-y-4">
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
-        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+    <section id="view-bahan" class="view-tab hidden space-y-4">
+      <div class="ios-card rounded-3xl p-6 space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-4">
           <div>
-            <h2 class="text-sm font-bold text-white uppercase tracking-wider flex items-center">
-              <i data-lucide="coffee" class="w-4 h-4 mr-2 text-amber-400"></i> Master Database Bahan Baku
+            <h2 class="text-sm font-extrabold text-slate-900 uppercase tracking-wider flex items-center">
+              <i data-lucide="coffee" class="w-4.5 h-4.5 mr-2 text-tukaps-500"></i> Master Bahan Baku
             </h2>
-            <p class="text-xs text-slate-400">Harga per unit dihitung otomatis dari harga beli dibagi isi kemasan.</p>
+            <p class="text-xs text-slate-500">Ubah harga beli/isi kemasan di sini, seluruh HPP menu akan otomatis ter-update!</p>
           </div>
+          <button onclick="openAddBahanModal()" class="ios-btn-primary text-white text-xs font-bold px-3.5 py-2 rounded-xl flex items-center space-x-1.5">
+            <i data-lucide="plus" class="w-4 h-4"></i>
+            <span>Tambah Bahan</span>
+          </button>
         </div>
 
         <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs text-slate-300">
-            <thead class="bg-slate-950 text-slate-400 uppercase text-[10px] font-bold tracking-wider border-b border-slate-800">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-50 text-slate-400 uppercase text-[10px] font-bold tracking-wider border-b border-slate-100">
               <tr>
-                <th class="py-3 px-4">Kode</th>
-                <th class="py-3 px-4">Nama Bahan Baku</th>
-                <th class="py-3 px-4">Kategori</th>
-                <th class="py-3 px-4">Satuan</th>
-                <th class="py-3 px-4 text-right">Isi Kemasan</th>
-                <th class="py-3 px-4 text-right">Harga Beli</th>
-                <th class="py-3 px-4 text-right">Harga / Unit</th>
-                <th class="py-3 px-4">Supplier</th>
+                <th class="py-3.5 px-4">Kode</th>
+                <th class="py-3.5 px-4">Nama Bahan Baku</th>
+                <th class="py-3.5 px-4">Kategori</th>
+                <th class="py-3.5 px-4">Satuan</th>
+                <th class="py-3.5 px-4 text-right">Isi Kemasan</th>
+                <th class="py-3.5 px-4 text-right">Harga Beli</th>
+                <th class="py-3.5 px-4 text-right">Harga / Unit</th>
+                <th class="py-3.5 px-4">Supplier</th>
+                <th class="py-3.5 px-4 text-center">Aksi</th>
               </tr>
             </thead>
-            <tbody id="bahan-table-body" class="divide-y divide-slate-800/60 font-mono">
-              <!-- Rendered via JS -->
+            <tbody id="bahan-table-body" class="divide-y divide-slate-100 font-mono">
+              <!-- Rendered by JS -->
             </tbody>
           </table>
         </div>
@@ -203,45 +279,57 @@
     </section>
 
     <!-- TAB 3: MASTER KEMASAN -->
-    <section id="tab-kemasan" class="tab-content hidden space-y-4">
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
-        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+    <section id="view-kemasan" class="view-tab hidden space-y-4">
+      <div class="ios-card rounded-3xl p-6 space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-4">
           <div>
-            <h2 class="text-sm font-bold text-white uppercase tracking-wider flex items-center">
-              <i data-lucide="package" class="w-4 h-4 mr-2 text-amber-400"></i> Master Database Kemasan & Packaging
+            <h2 class="text-sm font-extrabold text-slate-900 uppercase tracking-wider flex items-center">
+              <i data-lucide="package" class="w-4.5 h-4.5 mr-2 text-tukaps-500"></i> Master Kemasan & Packaging
             </h2>
-            <p class="text-xs text-slate-400">Database cup, tutup, sticker, botol, dan sedotan per unit.</p>
+            <p class="text-xs text-slate-500">Kelola harga cup, tutup, sticker logo, botol, dan packaging.</p>
           </div>
+          <button onclick="openAddKemasanModal()" class="ios-btn-primary text-white text-xs font-bold px-3.5 py-2 rounded-xl flex items-center space-x-1.5">
+            <i data-lucide="plus" class="w-4 h-4"></i>
+            <span>Tambah Kemasan</span>
+          </button>
         </div>
 
         <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs text-slate-300">
-            <thead class="bg-slate-950 text-slate-400 uppercase text-[10px] font-bold tracking-wider border-b border-slate-800">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-50 text-slate-400 uppercase text-[10px] font-bold tracking-wider border-b border-slate-100">
               <tr>
-                <th class="py-3 px-4">Kode</th>
-                <th class="py-3 px-4">Nama Kemasan</th>
-                <th class="py-3 px-4">Kategori</th>
-                <th class="py-3 px-4">Satuan</th>
-                <th class="py-3 px-4 text-right">Isi Kemasan</th>
-                <th class="py-3 px-4 text-right">Harga Beli</th>
-                <th class="py-3 px-4 text-right">Harga / Unit</th>
-                <th class="py-3 px-4">Supplier</th>
+                <th class="py-3.5 px-4">Kode</th>
+                <th class="py-3.5 px-4">Nama Kemasan</th>
+                <th class="py-3.5 px-4">Kategori</th>
+                <th class="py-3.5 px-4">Satuan</th>
+                <th class="py-3.5 px-4 text-right">Isi Kemasan</th>
+                <th class="py-3.5 px-4 text-right">Harga Beli</th>
+                <th class="py-3.5 px-4 text-right">Harga / Unit</th>
+                <th class="py-3.5 px-4">Supplier</th>
+                <th class="py-3.5 px-4 text-center">Aksi</th>
               </tr>
             </thead>
-            <tbody id="kemasan-table-body" class="divide-y divide-slate-800/60 font-mono">
-              <!-- Rendered via JS -->
+            <tbody id="kemasan-table-body" class="divide-y divide-slate-100 font-mono">
+              <!-- Rendered by JS -->
             </tbody>
           </table>
         </div>
       </div>
     </section>
-
   </main>
 
-  <footer class="border-t border-slate-900 bg-slate-950 px-6 py-3 text-center text-xs text-slate-500">
-    TUKAPS Coffee HPP Dashboard Engine &copy; 2026 — Modern & Compact Utility UI
+  <!-- iOS MODAL OVERLAY (FOR EDITING & ADDING) -->
+  <div id="modal-overlay" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div id="modal-container" class="ios-card w-full max-w-xl rounded-3xl p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+      <!-- Dynamic Modal Content -->
+    </div>
+  </div>
+
+  <footer class="mt-auto text-center text-xs text-slate-400 py-4 font-medium">
+    TUKAPS Coffee &copy; 2026 — Clean iOS Orange-White Theme
   </footer>
 
+  <!-- App Script -->
   <script src="app.js"></script>
 </body>
 </html>
