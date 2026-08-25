@@ -1,10 +1,10 @@
-// app.js — Kalkulasi HPP Real-time & Presisi Excel RESEP DAN HPP TUKAPS.xlsx
+// app.js — Engine Utama Tukaps Coffee (Versi Fix Cache & Sync Data Excel)
 
-const LOCAL_STORAGE_KEY = 'tukaps_hpp_ios_v4';
+const LOCAL_STORAGE_KEY = 'tukaps_hpp_v2026'; // Key baru untuk mereset cache browser lama
 const TARGET_PIN = "1234";
 let currentPinInput = "";
 
-// PASSCODE LOGIC
+// 1. PIN LOCK SCREEN SYSTEM
 function pressPin(num) {
   if (currentPinInput.length < 4) {
     currentPinInput += num;
@@ -37,8 +37,10 @@ function verifyPin() {
     updatePinDots();
   } else {
     const card = document.getElementById('pin-card');
-    card.classList.add('shake');
-    setTimeout(() => { card.classList.remove('shake'); }, 400);
+    if (card) {
+      card.classList.add('shake');
+      setTimeout(() => { card.classList.remove('shake'); }, 400);
+    }
     currentPinInput = "";
     updatePinDots();
   }
@@ -48,7 +50,7 @@ function lockApp() {
   document.getElementById('pin-screen').classList.remove('hidden');
 }
 
-// DATASET 100% SAMA DENGAN EXCEL
+// 2. DATASET PRESISI 100% DARI EXCEL TUKAPS
 const SEED_DATA = {
   "bahan": [
     { "id": "BHN01", "name": "Espresso Cair", "cat": "Kopi", "unit": "gr", "packQty": 1200, "buyPrice": 120000, "supplier": "Mahogany Roastery" },
@@ -112,7 +114,12 @@ let selectedCatFilter = "All";
 function loadStore() {
   const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
   if (saved) {
-    try { return JSON.parse(saved); } catch (e) {}
+    try {
+      const parsed = JSON.parse(saved);
+      if (parsed && parsed.menu && parsed.menu.length > 0) {
+        return parsed;
+      }
+    } catch (e) {}
   }
   saveStore(SEED_DATA);
   return SEED_DATA;
@@ -123,34 +130,39 @@ function saveStore(data) {
   localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(store));
 }
 
-function resetDataExcel() {
-  if (confirm("Reset seluruh data ke nilai awal dari file Excel?")) {
-    saveStore(SEED_DATA);
-    renderDashboard();
-    renderMasterTables();
-  }
+function forceResetExcel() {
+  saveStore(SEED_DATA);
+  renderDashboard();
+  renderMasterTables();
+  alert("Data berhasil di-reset kembali sesuai file Excel!");
 }
 
 function fmtRp(val) {
   return 'Rp ' + Math.round(val || 0).toLocaleString('id-ID');
 }
 
-// REALTIME HPP CALCULATOR ENGINE
+// 3. ENGINES & CALCULATOR
 function getBahanMap() {
   const map = {};
-  store.bahan.forEach(b => { map[b.id] = b.packQty > 0 ? b.buyPrice / b.packQty : 0; });
+  if (store.bahan) {
+    store.bahan.forEach(b => { map[b.id] = b.packQty > 0 ? b.buyPrice / b.packQty : 0; });
+  }
   return map;
 }
 
 function getKemasanMap() {
   const map = {};
-  store.kemasan.forEach(k => { map[k.id] = k.packQty > 0 ? k.buyPrice / k.packQty : 0; });
+  if (store.kemasan) {
+    store.kemasan.forEach(k => { map[k.id] = k.packQty > 0 ? k.buyPrice / k.packQty : 0; });
+  }
   return map;
 }
 
 function getCalculatedMenus() {
   const bMap = getBahanMap();
   const kMap = getKemasanMap();
+
+  if (!store.menu) return [];
 
   return store.menu.map(m => {
     let bahanCost = 0;
@@ -184,7 +196,8 @@ function switchTab(tabName) {
   document.querySelectorAll('.view-tab').forEach(el => el.classList.add('hidden'));
   document.querySelectorAll('.ios-segmented-btn').forEach(btn => btn.classList.remove('active', 'text-slate-600'));
 
-  document.getElementById(`view-${tabName}`).classList.remove('hidden');
+  const targetView = document.getElementById(`view-${tabName}`);
+  if (targetView) targetView.classList.remove('hidden');
 
   const navDesktop = document.getElementById(`tab-nav-${tabName}`);
   const navMobile = document.getElementById(`m-tab-nav-${tabName}`);
@@ -194,7 +207,8 @@ function switchTab(tabName) {
 
 function renderDashboard() {
   const menus = getCalculatedMenus();
-  const search = (document.getElementById('search-menu')?.value || '').toLowerCase();
+  const searchInput = document.getElementById('search-menu');
+  const search = searchInput ? searchInput.value.toLowerCase() : '';
 
   const cats = ["All", ...new Set(store.menu.map(m => m.cat))];
   const pillContainer = document.getElementById('cat-filter-pills');
@@ -242,19 +256,28 @@ function renderDashboard() {
     }).join('');
   }
 
-  document.getElementById('badge-menu-count').innerText = `${filtered.length} Menu`;
+  const countBadge = document.getElementById('badge-menu-count');
+  if (countBadge) countBadge.innerText = `${filtered.length} Menu`;
+
   if (menus.length > 0) {
     const sumHpp = menus.reduce((a, c) => a + c.totalModal, 0);
     const sumPrice = menus.reduce((a, c) => a + c.sellingPrice, 0);
     const sumMargin = menus.reduce((a, c) => a + c.marginPct, 0);
     const maxMenu = [...menus].sort((a, b) => b.totalModal - a.totalModal)[0];
 
-    document.getElementById('stat-total-menu').innerText = `${menus.length} Menu`;
-    document.getElementById('stat-avg-hpp').innerText = fmtRp(sumHpp / menus.length);
-    document.getElementById('stat-avg-price').innerText = fmtRp(sumPrice / menus.length);
-    document.getElementById('stat-avg-margin').innerText = `Margin Rata-rata: ~${Math.round(sumMargin / menus.length)}%`;
-    document.getElementById('stat-max-hpp').innerText = fmtRp(maxMenu.totalModal);
-    document.getElementById('stat-max-name').innerText = maxMenu.name;
+    const elTotal = document.getElementById('stat-total-menu');
+    const elAvgHpp = document.getElementById('stat-avg-hpp');
+    const elAvgPrice = document.getElementById('stat-avg-price');
+    const elAvgMargin = document.getElementById('stat-avg-margin');
+    const elMaxHpp = document.getElementById('stat-max-hpp');
+    const elMaxName = document.getElementById('stat-max-name');
+
+    if (elTotal) elTotal.innerText = `${menus.length} Menu`;
+    if (elAvgHpp) elAvgHpp.innerText = fmtRp(sumHpp / menus.length);
+    if (elAvgPrice) elAvgPrice.innerText = fmtRp(sumPrice / menus.length);
+    if (elAvgMargin) elAvgMargin.innerText = `Margin Rata-rata: ~${Math.round(sumMargin / menus.length)}%`;
+    if (elMaxHpp) elMaxHpp.innerText = fmtRp(maxMenu.totalModal);
+    if (elMaxName) elMaxName.innerText = maxMenu.name;
   }
 }
 
@@ -262,7 +285,7 @@ function setCategoryFilter(cat) { selectedCatFilter = cat; renderDashboard(); }
 
 function renderMasterTables() {
   const bahanBody = document.getElementById('bahan-table-body');
-  if (bahanBody) {
+  if (bahanBody && store.bahan) {
     bahanBody.innerHTML = store.bahan.map(b => {
       const unitPrice = b.packQty > 0 ? b.buyPrice / b.packQty : 0;
       return `
@@ -287,7 +310,7 @@ function renderMasterTables() {
   }
 
   const kemasanBody = document.getElementById('kemasan-table-body');
-  if (kemasanBody) {
+  if (kemasanBody && store.kemasan) {
     kemasanBody.innerHTML = store.kemasan.map(k => {
       const unitPrice = k.packQty > 0 ? k.buyPrice / k.packQty : 0;
       return `
@@ -312,12 +335,19 @@ function renderMasterTables() {
   }
 }
 
-function closeModal() { document.getElementById('modal-overlay').classList.add('hidden'); }
+function closeModal() {
+  const overlay = document.getElementById('modal-overlay');
+  if (overlay) overlay.classList.add('hidden');
+}
+
 function openModalHtml(html) {
   const container = document.getElementById('modal-container');
-  container.innerHTML = html;
-  document.getElementById('modal-overlay').classList.remove('hidden');
-  if (window.lucide) lucide.createIcons();
+  const overlay = document.getElementById('modal-overlay');
+  if (container && overlay) {
+    container.innerHTML = html;
+    overlay.classList.remove('hidden');
+    if (window.lucide) lucide.createIcons();
+  }
 }
 
 function editMenuModal(menuId) {
@@ -430,7 +460,9 @@ function createMenu(newId) {
   const name = document.getElementById('new-menu-name').value;
   if (!name) return alert('Nama menu wajib diisi!');
   store.menu.push({ id: newId, name, cat: document.getElementById('new-menu-cat').value, sellingPrice: Number(document.getElementById('new-menu-price').value), overhead: Number(document.getElementById('new-menu-overhead').value), recipe: {}, pkg: { KMS01: 1, KMS03: 1 } });
-  saveStore(); closeModal(); renderDashboard();
+  saveStore();
+  closeModal();
+  renderDashboard();
 }
 
 function deleteMenu(id) {
@@ -539,6 +571,7 @@ function updateKemasan(id) {
 
 function deleteKemasan(id) { if (confirm('Hapus kemasan ini?')) { store.kemasan = store.kemasan.filter(x => x.id !== id); saveStore(); renderMasterTables(); renderDashboard(); } }
 
+// INI BAGIAN UTAMA UNTUK LOADING DATA
 document.addEventListener('DOMContentLoaded', () => {
   renderDashboard();
   renderMasterTables();
